@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BilimMath — Global Multilingual</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5341/5341426.png">
+    <meta name="theme-color" content="#5D5FEF">
+
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -23,7 +30,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         const firebaseConfig = {
             apiKey: "AIzaSyDYcopzuJzFYm2T0-GonGA4YQqpzz5egxw",
@@ -84,6 +91,7 @@
             const [isCorrect, setIsCorrect] = useState(null);
             const [leaders, setLeaders] = useState([]);
             const [showRank, setShowRank] = useState(false);
+            const inputRef = useRef(null); // Реф для фокуса
 
             useEffect(() => {
                 const leadersRef = db.ref('users');
@@ -101,6 +109,7 @@
                 if (!selected) selected = topics[0];
                 const data = selected.gen();
                 setProblem({ ...data, topicName: {kk: selected.kk, ru: selected.ru} });
+                setTimeout(() => inputRef.current?.focus(), 100); // Возвращаем фокус
             };
 
             useEffect(() => { if(user) generate(grade, 'all'); setTopicId('all'); }, [grade, user]);
@@ -190,7 +199,7 @@
                         <h2 className="text-4xl font-black text-[#2D3142]">{problem?.q[lang]} = ?</h2>
                     </div>
 
-                    <input type="number" inputMode="decimal" value={answer} onChange={e => setAnswer(e.target.value)} onKeyDown={e => e.key === 'Enter' && check()} className="w-full bg-[#F2F6FF] rounded-[24px] py-6 text-center text-4xl font-black text-[#5D5FEF] mb-6 outline-none border-4 border-transparent focus:border-indigo-100 transition-all placeholder:text-indigo-100" placeholder="?" />
+                    <input ref={inputRef} type="number" inputMode="decimal" value={answer} onChange={e => setAnswer(e.target.value)} onKeyDown={e => e.key === 'Enter' && check()} className="w-full bg-[#F2F6FF] rounded-[24px] py-6 text-center text-4xl font-black text-[#5D5FEF] mb-6 outline-none border-4 border-transparent focus:border-indigo-100 transition-all placeholder:text-indigo-100" placeholder="?" />
 
                     <button onClick={check} disabled={isCorrect !== null} className={`w-full py-6 rounded-[24px] text-white font-black text-xl shadow-xl transition-all active:scale-95 ${isCorrect === true ? 'bg-green-500' : isCorrect === false ? 'bg-red-500' : 'bg-[#5D5FEF]'}`}>
                         {isCorrect === true ? t.yes : isCorrect === false ? t.no : t.check}
@@ -201,9 +210,13 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+
+        // ШАГ 3: Регистрация Service Worker для PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+            });
+        }
     </script>
 </body>
 </html>
-
-
-
