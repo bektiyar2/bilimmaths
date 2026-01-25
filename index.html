@@ -3,140 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BilimMath — Тренажер</title>
+    <title>BilimMath — Онлайн Тренажер</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .math-card { box-shadow: 0 20px 50px rgba(93, 95, 239, 0.1); border-radius: 40px; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .math-card { box-shadow: 0 20px 60px rgba(93, 95, 239, 0.12); border-radius: 40px; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .active-tab { transform: scale(0.95); opacity: 0.9; }
     </style>
 </head>
-<body class="bg-[#F8FAFF] min-h-screen flex items-center justify-center p-4">
+<body class="bg-[#F4F7FF] min-h-screen flex items-center justify-center p-4">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
         const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-        // --- ГЕНЕРАТОРЫ ЗАДАЧ ПО ТЕМАМ ---
+        // --- ГЕНЕРАТОРЫ ЗАДАЧ (ДВУЯЗЫЧНЫЕ) ---
         const taskGenerators = {
-            1: {
-                "Қосу/Сложение": () => { const a = randomInt(1, 10), b = randomInt(1, 10); return { q: `${a} + ${b} = ?`, ans: a + b }; },
-                "Азайту/Вычитание": () => { const a = randomInt(5, 20), b = randomInt(1, a); return { q: `${a} - ${b} = ?`, ans: a - b }; }
-            },
-            2: {
-                "Көбейту/Умножение": () => { const a = randomInt(2, 9), b = randomInt(2, 9); return { q: `${a} × ${b} = ?`, ans: a * b }; },
-                "Бөлу/Деление": () => { const ans = randomInt(2, 9), b = randomInt(2, 9); return { q: `${ans * b} : ${b} = ?`, ans }; }
-            },
-            3: {
-                "Теңдеулер/Уравнения": () => { const x = randomInt(5, 50), a = randomInt(10, 30); return { q: `x + ${a} = ${x + a}. x = ?`, ans: x }; }
-            },
-            4: {
-                "Периметр": () => { const a = randomInt(2, 10), b = randomInt(2, 10); return { q: `a=${a}, b=${b}. P=?`, ans: 2 * (a + b) }; },
-                "Аудан/Площадь": () => { const a = randomInt(2, 10), b = randomInt(2, 10); return { q: `a=${a}, b=${b}. S=?`, ans: a * b }; }
-            },
-            5: {
-                "Пайыздар/Проценты": () => { const w = randomInt(10, 10)*10, p = randomInt(1, 5)*10; return { q: `${w}-дің ${p}%-ы?`, ans: w * p / 100 }; },
-                "Бөлшектер/Дроби": () => { const a = randomInt(1, 9)/10, b = randomInt(1, 9)/10; return { q: `${a} + ${b} = ?`, ans: Math.round((a+b)*10)/10 }; }
-            },
-            6: {
-                "Теріс сандар/Отриц. числа": () => { const a = randomInt(-15, 5), b = randomInt(-5, 15); return { q: `(${a}) + (${b}) = ?`, ans: a + b }; }
-            },
-            7: {
-                "Алгебра": () => { const x = randomInt(1, 10), a = randomInt(2, 5), b = randomInt(1, 15); return { q: `${a}x + ${b} = ${a*x + b}. x=?`, ans: x }; }
-            },
-            8: {
-                "Түбірлер/Корни": () => { const n = randomInt(2, 15); return { q: `√${n * n} = ?`, ans: n }; },
-                "Квадрат теңдеулер/Квадр. уравнения": () => { const x1 = randomInt(1, 5), x2 = randomInt(1, 5); return { q: `x² ${-(x1+x2)>=0?'+':''} ${-(x1+x2)}x + ${x1*x2} = 0. Кіші түбірі?`, ans: Math.min(x1, x2) }; }
-            },
-            9: {
-                "Прогрессия": () => { const a1 = randomInt(1, 10), d = randomInt(2, 5); return { q: `a₁=${a1}, d=${d}. a₃=?`, ans: a1 + 2*d }; }
-            }
+            1: [
+                { id: 'add', kk: 'Қосу', ru: 'Сложение', gen: () => { const a=randomInt(1,10), b=randomInt(1,10); return { q: {kk:`${a} + ${b} = ?`, ru:`${a} + ${b} = ?`}, ans: a+b }; } },
+                { id: 'sub', kk: 'Азайту', ru: 'Вычитание', gen: () => { const a=randomInt(5,15), b=randomInt(1,a); return { q: {kk:`${a} - ${b} = ?`, ru:`${a} - ${b} = ?`}, ans: a-b }; } },
+                { id: 'comp', kk: 'Салыстыру', ru: 'Сравнение', gen: () => { const a=randomInt(1,15), b=randomInt(1,15); return { q: {kk:`${a} > ${b} ма? (1-иә, 0-жоқ)`, ru:`${a} > ${b} ? (1-да, 0-нет)`}, ans: a>b?1:0 }; } }
+            ],
+            2: [
+                { id: 'mult', kk: 'Көбейту', ru: 'Умножение', gen: () => { const a=randomInt(2,5), b=randomInt(1,9); return { q: {kk:`${a} × ${b} = ?`, ru:`${a} × ${b} = ?`}, ans: a*b }; } },
+                { id: 'time', kk: 'Уақыт', ru: 'Время', gen: () => { const h=randomInt(1,4); return { q: {kk:`${h} сағатта неше минут бар?`, ru:`Сколько минут в ${h} часах?`}, ans: h*60 }; } },
+                { id: 'len', kk: 'Ұзындық', ru: 'Длина', gen: () => { const d=randomInt(1,9); return { q: {kk:`${d} дм = ? см`, ru:`${d} дм = ? см`}, ans: d*10 }; } }
+            ],
+            3: [
+                { id: 'div', kk: 'Бөлу', ru: 'Деление', gen: () => { const a=randomInt(2,9), ans=randomInt(2,9); return { q: {kk:`${a*ans} : ${a} = ?`, ru:`${a*ans} : ${a} = ?`}, ans }; } },
+                { id: 'perim', kk: 'Периметр', ru: 'Периметр', gen: () => { const a=randomInt(2,10); return { q: {kk:`Шаршы қабырғасы ${a}см. P=?`, ru:`Сторона квадрата ${a}см. P=?`}, ans: a*4 }; } },
+                { id: 'logic', kk: 'Логика', ru: 'Логика', gen: () => { const a=randomInt(1,10); return { q: {kk:`Ең кіші екі таңбалы сан?`, ru:`Наименьшее двузначное число?`}, ans: 10 }; } }
+            ],
+            4: [
+                { id: 'area', kk: 'Аудан', ru: 'Площадь', gen: () => { const a=randomInt(3,8), b=randomInt(2,5); return { q: {kk:`a=${a}, b=${b}. S = ?`, ru:`a=${a}, b=${b}. S = ?`}, ans: a*b }; } },
+                { id: 'speed', kk: 'Қозғалыс', ru: 'Скорость', gen: () => { const v=randomInt(60,80), t=2; return { q: {kk:`v=${v} км/ч, t=${t} сағ. S=?`, ru:`v=${v} км/ч, t=${t} ч. S=?`}, ans: v*t }; } },
+                { id: 'big_num', kk: 'Миллиондар', ru: 'Миллионы', gen: () => { const a=randomInt(100,500)*1000, b=randomInt(100,500)*1000; return { q: {kk:`${a} + ${b} = ?`, ru:`${a} + ${b} = ?`}, ans: a+b }; } }
+            ],
+            5: [
+                { id: 'percent', kk: 'Пайыздар', ru: 'Проценты', gen: () => { const n=randomInt(1,5)*100, p=randomInt(1,4)*10; return { q: {kk:`${n}-дің ${p}%-ы?`, ru:`${p}% от ${n}?`}, ans: n*p/100 }; } },
+                { id: 'decimal', kk: 'Ондық бөлшек', ru: 'Десятичные', gen: () => { const a=randomInt(1,9)/10, b=randomInt(1,9)/10; return { q: {kk:`${a} + ${b} = ?`, ru:`${a} + ${b} = ?`}, ans: Math.round((a+b)*10)/10 }; } },
+                { id: 'nod', kk: 'ЕҮОБ/НОД', ru: 'ЕҮОБ/НОД', gen: () => { return { q: {kk:`12 мен 18-дің ЕҮОБ?`, ru:`НОД чисел 12 и 18?`}, ans: 6 }; } }
+            ],
+            6: [
+                { id: 'prop', kk: 'Пропорция', ru: 'Пропорция', gen: () => { const x=randomInt(2,5); return { q: {kk:`x/12 = 1/2. x=?`, ru:`x/12 = 1/2. x=?`}, ans: 6 }; } },
+                { id: 'neg', kk: 'Теріс сандар', ru: 'Отриц. числа', gen: () => { const a=randomInt(-10,-1), b=randomInt(-10,-1); return { q: {kk:`(${a}) * (${b}) = ?`, ru:`(${a}) * (${b}) = ?`}, ans: a*b }; } },
+                { id: 'circle', kk: 'Дөңгелек', ru: 'Круг', gen: () => { return { q: {kk:`Диаметр 10 болса, радиус?`, ru:`Если диаметр 10, радиус?`}, ans: 5 }; } }
+            ],
+            7: [
+                { id: 'pow', kk: 'Дәреже', ru: 'Степени', gen: () => { const n=randomInt(2,4); return { q: {kk:`${n}³ = ?`, ru:`${n}³ = ?`}, ans: n**3 }; } },
+                { id: 'fsu', kk: 'Қысқаша көбейту', ru: 'ФСУ', gen: () => { return { q: {kk:`(x-2)(x+2) = x² - ?`, ru:`(x-2)(x+2) = x² - ?`}, ans: 4 }; } },
+                { id: 'linear', kk: 'Сызықтық функ.', ru: 'Линейная функ.', gen: () => { return { q: {kk:`y=3x+2. x=2 болса, y=?`, ru:`y=3x+2. x=2, y=?`}, ans: 8 }; } }
+            ],
+            8: [
+                { id: 'sqrt', kk: 'Түбірлер', ru: 'Корни', gen: () => { const n=randomInt(11,15); return { q: {kk:`√${n*n} = ?`, ru:`√${n*n} = ?`}, ans: n }; } },
+                { id: 'quad', kk: 'Квадрат теңдеу', ru: 'Квадратные', gen: () => { return { q: {kk:`x² - 5x + 4 = 0. Кіші түбірі?`, ru:`x² - 5x + 4 = 0. Меньший корень?`}, ans: 1 }; } },
+                { id: 'pif', kk: 'Пифагор', ru: 'Пифагор', gen: () => { return { q: {kk:`Катеттері 6 мен 8. Гипотенуза?`, ru:`Катеты 6 и 8. Гипотенуза?`}, ans: 10 }; } }
+            ],
+            9: [
+                { id: 'prog', kk: 'Прогрессия', ru: 'Прогрессия', gen: () => { return { q: {kk:`a₁=2, d=3. a₄=?`, ru:`a₁=2, d=3. a₄=?`}, ans: 11 }; } },
+                { id: 'trig', kk: 'Тригонометрия', ru: 'Тригонометрия', gen: () => { return { q: {kk:`2 * sin(30°) = ?`, ru:`2 * sin(30°) = ?`}, ans: 1 }; } },
+                { id: 'prob', kk: 'Ықтималдық', ru: 'Вероятность', gen: () => { return { q: {kk:`Тиын тасталды. Оре түсу ықтималдығы (%)?`, ru:`Вероятность выпадения орла (%)?`}, ans: 50 }; } }
+            ]
         };
 
         const App = () => {
             const [lang, setLang] = useState('kk');
             const [grade, setGrade] = useState(1);
-            const [topic, setTopic] = useState('all');
+            const [topicId, setTopicId] = useState('all');
             const [problem, setProblem] = useState(null);
             const [answer, setAnswer] = useState('');
             const [isCorrect, setIsCorrect] = useState(null);
             const [stats, setStats] = useState(() => {
-                const s = localStorage.getItem('bilim_stats');
+                const s = localStorage.getItem('bilim_stats_final');
                 return s ? JSON.parse(s) : { c: 0, t: 0 };
             });
 
-            const currentTopics = Object.keys(taskGenerators[grade]);
+            const currentGradeTopics = taskGenerators[grade];
 
-            const generate = (g = grade, t = topic) => {
-                const targetTopic = t === 'all' ? currentTopics[randomInt(0, currentTopics.length - 1)] : t;
-                const gen = taskGenerators[g][targetTopic]();
-                setProblem({ ...gen, displayTopic: targetTopic.split('/')[lang === 'kk' ? 0 : 1] });
+            const generate = (g = grade, tId = topicId) => {
+                let selected;
+                if (tId === 'all') {
+                    selected = currentGradeTopics[randomInt(0, currentGradeTopics.length - 1)];
+                } else {
+                    selected = currentGradeTopics.find(x => x.id === tId);
+                }
+                const data = selected.gen();
+                setProblem({ ...data, topicName: {kk: selected.kk, ru: selected.ru} });
             };
 
-            useEffect(() => { generate(grade, 'all'); setTopic('all'); }, [grade, lang]);
-            useEffect(() => { localStorage.setItem('bilim_stats', JSON.stringify(stats)); }, [stats]);
+            useEffect(() => { generate(grade, 'all'); setTopicId('all'); }, [grade]);
+            useEffect(() => { localStorage.setItem('bilim_stats_final', JSON.stringify(stats)); }, [stats]);
 
             const check = () => {
                 if (!answer) return;
                 const correct = parseFloat(answer) === problem.ans;
                 setIsCorrect(correct);
                 setStats(s => ({ c: correct ? s.c + 1 : s.c, t: s.t + 1 }));
-                setTimeout(() => { generate(); setAnswer(''); setIsCorrect(null); }, 1200);
+                setTimeout(() => { generate(); setAnswer(''); setIsCorrect(null); }, 1300);
             };
 
-            const t = {
-                kk: { score: "Ұпай", check: "Тексеру", all: "Барлығы", ok: "Дұрыс!", no: "Қате!" },
-                ru: { score: "Счёт", check: "Проверить", all: "Все темы", ok: "Верно!", no: "Ошибка!" }
+            const ui = {
+                kk: { score: "Ұпай", check: "Тексеру", all: "БАРЛЫҒЫ", yes: "ДҰРЫС!", no: "ҚАТЕ!", placeholder: "?" },
+                ru: { score: "Счёт", check: "Проверить", all: "ВСЕ ТЕМЫ", yes: "ВЕРНО!", no: "ОШИБКА!", placeholder: "?" }
             }[lang];
 
             if (!problem) return null;
 
             return (
-                <div className="math-card bg-white w-full max-w-[480px] p-6 md:p-10 border border-indigo-50">
-                    <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-[#5D5FEF] text-2xl font-black italic">BilimMath</h1>
-                        <div className="flex bg-gray-100 p-1 rounded-xl text-[10px] font-bold">
-                            <button onClick={() => setLang('kk')} className={`px-3 py-1.5 rounded-lg ${lang === 'kk' ? 'bg-white text-[#5D5FEF] shadow-sm' : 'text-gray-400'}`}>ҚАЗ</button>
-                            <button onClick={() => setLang('ru')} className={`px-3 py-1.5 rounded-lg ${lang === 'ru' ? 'bg-white text-[#5D5FEF] shadow-sm' : 'text-gray-400'}`}>РУС</button>
+                <div className="math-card bg-white w-full max-w-[480px] p-6 md:p-10 border border-white">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 className="text-[#5D5FEF] text-2xl font-black tracking-tight leading-none">BilimMath</h1>
+                            <span className="text-[10px] font-bold text-gray-300 tracking-widest uppercase">Premium Edition</span>
+                        </div>
+                        <div className="flex bg-gray-50 p-1.5 rounded-2xl shadow-inner">
+                            <button onClick={() => setLang('kk')} className={`px-4 py-2 rounded-xl text-[11px] font-black transition ${lang === 'kk' ? 'bg-white text-[#5D5FEF] shadow-sm' : 'text-gray-400'}`}>ҚАЗ</button>
+                            <button onClick={() => setLang('ru')} className={`px-4 py-2 rounded-xl text-[11px] font-black transition ${lang === 'ru' ? 'bg-white text-[#5D5FEF] shadow-sm' : 'text-gray-400'}`}>РУС</button>
                         </div>
                     </div>
 
+                    {/* Grades */}
                     <div className="grid grid-cols-5 gap-2 mb-6">
                         {[1,2,3,4,5,6,7,8,9].map(g => (
-                            <button key={g} onClick={() => setGrade(g)} className={`py-2.5 rounded-xl font-bold text-sm transition ${grade === g ? 'bg-[#5D5FEF] text-white shadow-lg shadow-indigo-200' : 'bg-[#F2F6FF] text-[#5D5FEF]'}`}>{g}</button>
+                            <button key={g} onClick={() => setGrade(g)} className={`py-3 rounded-2xl font-black text-sm transition-all active:scale-90 ${grade === g ? 'bg-[#5D5FEF] text-white shadow-lg shadow-indigo-100' : 'bg-[#F2F6FF] text-[#5D5FEF] hover:bg-indigo-50'}`}>{g}</button>
                         ))}
                     </div>
 
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-6 pb-2">
-                        <button onClick={() => {setTopic('all'); generate(grade, 'all');}} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${topic === 'all' ? 'bg-[#5D5FEF] text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>{t.all}</button>
-                        {currentTopics.map(top => (
-                            <button key={top} onClick={() => {setTopic(top); generate(grade, top);}} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider whitespace-nowrap ${topic === top ? 'bg-[#5D5FEF] text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>{top.split('/')[lang === 'kk' ? 0 : 1]}</button>
+                    {/* Sub-Topics (Chips) */}
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-8 pb-1">
+                        <button onClick={() => {setTopicId('all'); generate(grade, 'all');}} className={`px-5 py-2.5 rounded-full text-[10px] font-black tracking-wider whitespace-nowrap transition ${topicId === 'all' ? 'bg-[#5D5FEF] text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>{ui.all}</button>
+                        {currentGradeTopics.map(t => (
+                            <button key={t.id} onClick={() => {setTopicId(t.id); generate(grade, t.id);}} className={`px-5 py-2.5 rounded-full text-[10px] font-black tracking-wider whitespace-nowrap transition ${topicId === t.id ? 'bg-[#5D5FEF] text-white' : 'bg-gray-50 text-gray-400 border border-gray-100'}`}>{t[lang].toUpperCase()}</button>
                         ))}
                     </div>
 
-                    <div className="bg-[#F8FAFF] rounded-[32px] p-10 text-center mb-6 border border-indigo-50/50 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100 opacity-20"></div>
-                        <p className="text-[#A5B4FC] font-black tracking-[0.2em] text-[10px] mb-3 uppercase">{problem.displayTopic}</p>
-                        <h2 className="text-4xl md:text-5xl font-black text-[#2D3142]">{problem.q}</h2>
+                    {/* Question Box */}
+                    <div className="bg-[#F9FBFF] rounded-[40px] p-10 text-center mb-6 border border-indigo-50/30 relative">
+                        <p className="text-[#A5B4FC] font-black tracking-[0.2em] text-[10px] mb-4 uppercase">{problem.topicName[lang]}</p>
+                        <h2 className="text-4xl md:text-5xl font-black text-[#2D3142] leading-tight drop-shadow-sm">{problem.q[lang]}</h2>
                     </div>
 
-                    <input type="number" inputMode="decimal" value={answer} onChange={e => setAnswer(e.target.value)} onKeyDown={e => e.key === 'Enter' && check()} placeholder="?" className="w-full bg-[#F2F6FF] rounded-2xl py-5 text-center text-3xl font-black text-[#5D5FEF] mb-4 outline-none border-2 border-transparent focus:border-indigo-200 transition-all"/>
+                    {/* Input */}
+                    <input 
+                        type="number" 
+                        inputMode="decimal" 
+                        value={answer} 
+                        onChange={e => setAnswer(e.target.value)} 
+                        onKeyDown={e => e.key === 'Enter' && check()} 
+                        placeholder={ui.placeholder}
+                        className="w-full bg-[#F2F6FF] rounded-[24px] py-6 text-center text-3xl font-black text-[#5D5FEF] mb-5 outline-none border-4 border-transparent focus:border-indigo-100 transition-all placeholder:text-indigo-100"
+                    />
 
-                    <button onClick={check} disabled={isCorrect !== null} className={`w-full py-5 rounded-2xl text-white font-black text-lg shadow-xl transition-all active:scale-95 ${isCorrect === true ? 'bg-green-500 shadow-green-100' : isCorrect === false ? 'bg-red-500 shadow-red-100' : 'bg-[#5D5FEF] shadow-indigo-100'}`}>
-                        {isCorrect === true ? t.ok : isCorrect === false ? t.no : t.check}
+                    {/* Action Button */}
+                    <button 
+                        onClick={check} 
+                        disabled={isCorrect !== null}
+                        className={`w-full py-6 rounded-[24px] text-white font-black text-xl shadow-xl transition-all active:scale-95 ${isCorrect === true ? 'bg-green-500 shadow-green-100' : isCorrect === false ? 'bg-red-500 shadow-red-100' : 'bg-[#5D5FEF] shadow-indigo-100 hover:brightness-110'}`}>
+                        {isCorrect === true ? ui.yes : isCorrect === false ? ui.no : ui.check}
                     </button>
 
-                    <div className="flex justify-between mt-8 text-[10px] font-black uppercase tracking-widest text-gray-300">
-                        <span>{t.score}: {stats.c}/{stats.t}</span>
-                        <span>{stats.t > 0 ? Math.round(stats.c/stats.t*100) : 0}%</span>
+                    {/* Stats */}
+                    <div className="flex justify-between mt-10 px-2">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{ui.score}</span>
+                            <span className="text-xl font-black text-gray-700">{stats.c} / {stats.t}</span>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">%</span>
+                            <span className="text-xl font-black text-gray-700">{stats.t > 0 ? Math.round(stats.c/stats.t*100) : 0}</span>
+                        </div>
                     </div>
                 </div>
             );
