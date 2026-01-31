@@ -17,7 +17,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Математические шрифты -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=STIX+Two+Math&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .math-card { box-shadow: 0 20px 60px rgba(93, 95, 239, 0.15); border-radius: 40px; }
@@ -34,6 +37,48 @@
             background: linear-gradient(45deg, #FF6B6B, #FFD93D);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+        
+        /* Математические символы с векторной стрелкой */
+        .math-vector {
+            position: relative;
+            display: inline-block;
+            font-family: 'STIX Two Math', 'Cambria Math', serif;
+        }
+        .math-vector::after {
+            content: '→';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        
+        /* Альтернативный вариант со стрелкой сверху */
+        .vector-arrow {
+            position: relative;
+            display: inline-block;
+        }
+        .vector-arrow::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: currentColor;
+        }
+        .vector-arrow::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            right: -2px;
+            width: 0;
+            height: 0;
+            border-left: 4px solid currentColor;
+            border-top: 3px solid transparent;
+            border-bottom: 3px solid transparent;
         }
     </style>
 </head>
@@ -57,6 +102,11 @@
         const db = firebase.database();
 
         const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+
+        // Компонент для отображения вектора
+        const Vector = ({ letter }) => (
+            <span className="vector-arrow" style={{ paddingRight: '4px' }}>{letter}</span>
+        );
 
         // Звуковые эффекты
         const playSound = (type) => {
@@ -158,7 +208,21 @@
                 { id: 'prog', kk: 'Арифметикалық прогрессия', ru: 'Арифметическая прогрессия', gen: () => { const a1=randomInt(2,8), d=randomInt(2,5); return { q: {kk:`a₁=${a1}, d=${d}. a₃=a₁+2d=?`, ru:`a₁=${a1}, d=${d}. a₃=a₁+2d=?`}, ans: a1+2*d }; } },
                 { id: 'geomprog', kk: 'Геометриялық прогрессия', ru: 'Геометрическая прогрессия', gen: () => { const b1=randomInt(2,5), q=2; return { q: {kk:`b₁=${b1}, q=2. b₃=b₁×q²=?`, ru:`b₁=${b1}, q=2. b₃=b₁×q²=?`}, ans: b1*4 }; } },
                 { id: 'trig', kk: 'Тригонометрия', ru: 'Тригонометрия', gen: () => { return { q: {kk:`sin 30° = ?`, ru:`sin 30° = ?`}, ans: 0.5 }; } },
-                { id: 'vectors', kk: 'Векторлар', ru: 'Векторы', gen: () => { const x=randomInt(2,8), y=randomInt(2,8); return { q: {kk:`a⃗(${x};${y}). Координата x=?`, ru:`a⃗(${x};${y}). Координата x=?`}, ans: x }; } },
+                { 
+                    id: 'vectors', 
+                    kk: 'Векторлар', 
+                    ru: 'Векторы', 
+                    gen: () => { 
+                        const x=randomInt(2,8), y=randomInt(2,8); 
+                        return { 
+                            q: {
+                                kk: { html: true, content: <span><span className="vector-arrow">a</span>({x};{y}). Координата x=?</span> },
+                                ru: { html: true, content: <span><span className="vector-arrow">a</span>({x};{y}). Координата x=?</span> }
+                            }, 
+                            ans: x 
+                        }; 
+                    } 
+                },
                 { id: 'combinatorics', kk: 'Комбинаторика', ru: 'Комбинаторика', gen: () => { const n=randomInt(3,6); return { q: {kk:`Неше тәсілмен ${n} адамды қатарға қою? ${n}!=?`, ru:`Сколько способов расставить ${n} человек? ${n}!=?`}, ans: n===3?6:n===4?24:n===5?120:720 }; } },
                 { id: 'probability', kk: 'Ықтималдық', ru: 'Вероятность', gen: () => { const n=randomInt(2,5); return { q: {kk:`Монетаны ${n} рет лақтыру. Барлық нәтижелер: 2^${n}=?`, ru:`Подбросить монету ${n} раз. Всего исходов: 2^${n}=?`}, ans: Math.pow(2,n) }; } },
             ],
@@ -448,6 +512,15 @@
 
             const timeBonus = timer < 5 ? '⚡ +20' : timer < 10 ? '💨 +15' : '+10';
 
+            // Рендер вопроса с учетом HTML
+            const renderQuestion = () => {
+                const q = problem?.q[lang];
+                if (q && q.html) {
+                    return q.content;
+                }
+                return `${q} = ?`;
+            };
+
             return (
                 <div className={`math-card bg-white w-full max-w-[480px] p-8 ${shake ? 'shake' : ''} ${bounce ? 'bounce' : ''}`}>
                     <div className="flex justify-between items-center mb-6">
@@ -494,7 +567,7 @@
                             <span className="text-[10px] text-gray-400 ml-2">{timeBonus}</span>
                         </div>
                         <p className="text-[#A5B4FC] font-black tracking-[0.2em] text-[9px] mb-3 uppercase">{problem?.topicName[lang]}</p>
-                        <h2 className="text-4xl font-black text-[#2D3142]">{problem?.q[lang]} = ?</h2>
+                        <h2 className="text-4xl font-black text-[#2D3142]">{renderQuestion()}</h2>
                     </div>
 
                     <input 
@@ -532,5 +605,3 @@
     </script>
 </body>
 </html>
-
-
