@@ -46,73 +46,68 @@
         const db = firebase.database();
 
         const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
+        
+        // Вспомогательная функция для НОД (GCD)
+        const getGCD = (a, b) => (!b ? a : getGCD(b, a % b));
+        
         const taskGenerators = {
-            // 1 КЛАСС: Числа 0-20, сложение/вычитание без перехода через десяток и с переходом, нахождение неизвестного
+            // 1 КЛАСС: Числа 0-20, Сложение/Вычитание, Компоненты действий
             1: [
-                { id: 'add10', kk: 'Қосу (20-ға дейін)', ru: 'Сложение (до 20)', gen: () => { const a=randomInt(1,10), b=randomInt(1,10); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
-                { id: 'sub10', kk: 'Азайту (20-ға дейін)', ru: 'Вычитание (до 20)', gen: () => { const a=randomInt(5,20), b=randomInt(1,a); return { q: {kk:`${a} - ${b}`, ru:`${a} - ${b}`}, ans: a-b }; } },
-                { id: 'unknown', kk: 'Белгісіз сан', ru: 'Неизвестное число', gen: () => { const a=randomInt(1,10), res=randomInt(11,20); return { q: {kk:`${a} + x = ${res}`, ru:`${a} + x = ${res}`}, ans: res-a }; } },
-                { id: 'comp', kk: 'Салыстыру', ru: 'Сравнение (сумма)', gen: () => { const a=randomInt(1,5), b=randomInt(1,5), c=randomInt(1,3); return { q: {kk:`${a}+${b}+${c}`, ru:`${a}+${b}+${c}`}, ans: a+b+c }; } }
+                { id: 'add20', kk: 'Қосу (20-ға дейін)', ru: 'Сложение (до 20)', gen: () => { const a=randomInt(1,10), b=randomInt(1,10); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
+                { id: 'sub20', kk: 'Азайту (20-ға дейін)', ru: 'Вычитание (до 20)', gen: () => { const a=randomInt(5,20), b=randomInt(1,a); return { q: {kk:`${a} - ${b}`, ru:`${a} - ${b}`}, ans: a-b }; } },
+                { id: 'eq_simple', kk: 'Теңдеу (x+a=b)', ru: 'Уравнение (x+a=b)', gen: () => { const a=randomInt(1,10), ans=randomInt(1,10); return { q: {kk:`x + ${a} = ${ans+a}`, ru:`x + ${a} = ${ans+a}`}, ans: ans }; } }
             ],
-            // 2 КЛАСС: Числа до 100, таблица умножения (начало), скобки
+            // 2 КЛАСС: Числа до 100, Таблица умножения, Скобки
             2: [
-                { id: 'add100', kk: 'Қосу (100-ге дейін)', ru: 'Сложение (до 100)', gen: () => { const a=randomInt(10,50), b=randomInt(10,40); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
-                { id: 'sub100', kk: 'Азайту (100-ге дейін)', ru: 'Вычитание (до 100)', gen: () => { const a=randomInt(50,99), b=randomInt(10,40); return { q: {kk:`${a} - ${b}`, ru:`${a} - ${b}`}, ans: a-b }; } },
-                { id: 'mult_easy', kk: 'Көбейту кестесі (2-5)', ru: 'Таблица умножения (2-5)', gen: () => { const a=randomInt(2,5), b=randomInt(2,9); return { q: {kk:`${a} · ${b}`, ru:`${a} · ${b}`}, ans: a*b }; } },
-                { id: 'brackets', kk: 'Жақшалар', ru: 'Скобки', gen: () => { const a=randomInt(10,20), b=randomInt(1,5), c=randomInt(1,5); return { q: {kk:`${a} - (${b} + ${c})`, ru:`${a} - (${b} + ${c})`}, ans: a-(b+c) }; } }
+                { id: 'add100', kk: 'Қосу (100-ге дейін)', ru: 'Сложение (до 100)', gen: () => { const a=randomInt(15,60), b=randomInt(15,39); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
+                { id: 'mult_tbl', kk: 'Көбейту кестесі', ru: 'Таблица умножения', gen: () => { const a=randomInt(2,9), b=randomInt(2,9); return { q: {kk:`${a} · ${b}`, ru:`${a} · ${b}`}, ans: a*b }; } },
+                { id: 'brackets', kk: 'Жақшалы өрнек', ru: 'Сложение со скобками', gen: () => { const a=randomInt(10,20), b=randomInt(5,10), c=randomInt(1,5); return { q: {kk:`${a} - (${b} - ${c})`, ru:`${a} - (${b} - ${c})`}, ans: a-(b-c) }; } }
             ],
-            // 3 КЛАСС: Умножение/деление (полное), уравнения, периметр/площадь
+            // 3 КЛАСС: Внетабличное умножение, Деление, Периметр
             3: [
-                { id: 'mult_hard', kk: 'Көбейту кестесі (6-9)', ru: 'Таблица умножения (6-9)', gen: () => { const a=randomInt(6,9), b=randomInt(2,9); return { q: {kk:`${a} · ${b}`, ru:`${a} · ${b}`}, ans: a*b }; } },
-                { id: 'div_easy', kk: 'Қалдықсыз бөлу', ru: 'Деление без остатка', gen: () => { const b=randomInt(2,9), ans=randomInt(2,9); const a=b*ans; return { q: {kk:`${a} : ${b}`, ru:`${a} : ${b}`}, ans: ans }; } },
-                { id: 'eq_mult', kk: 'Күрделі теңдеу', ru: 'Сложное уравнение', gen: () => { const x=randomInt(2,9), m=randomInt(2,5); return { q: {kk:`x · ${m} = ${x*m}`, ru:`x · ${m} = ${x*m}`}, ans: x }; } },
-                { id: 'geom_p', kk: 'Периметр (P)', ru: 'Периметр (P)', gen: () => { const a=randomInt(3,8), b=randomInt(3,8); return { q: {kk:`a=${a}, b=${b}. P=?`, ru:`a=${a}, b=${b}. P=?`}, ans: (a+b)*2 }; } }
+                { id: 'div_simple', kk: 'Бөлу кестесі', ru: 'Деление', gen: () => { const b=randomInt(2,9), ans=randomInt(2,9); const a=b*ans; return { q: {kk:`${a} : ${b}`, ru:`${a} : ${b}`}, ans: ans }; } },
+                { id: 'mult_big', kk: '10-ға, 100-ге көбейту', ru: 'Умножение на 10, 100', gen: () => { const a=randomInt(2,9), zeros=randomInt(1,2); const mult = zeros===1?10:100; return { q: {kk:`${a} · ${mult}`, ru:`${a} · ${mult}`}, ans: a*mult }; } },
+                { id: 'geom_p', kk: 'Периметр (P)', ru: 'Периметр (P)', gen: () => { const a=randomInt(2,10), b=randomInt(2,10); return { q: {kk:`Тік төртбұрыш: a=${a}, b=${b}. P=?`, ru:`Прямоугольник: a=${a}, b=${b}. P=?`}, ans: (a+b)*2 }; } }
             ],
-            // 4 КЛАСС: Многозначные числа, скорость/время/расстояние, порядок действий
+            // 4 КЛАСС: Многозначные числа, Скорость, Порядок действий
             4: [
-                { id: 'long_add', kk: 'Көптаңбалы сандар', ru: 'Многозначные числа', gen: () => { const a=randomInt(100,500), b=randomInt(100,500); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
-                { id: 'speed', kk: 'Қозғалыс (S=v·t)', ru: 'Движение (S=v·t)', gen: () => { const v=randomInt(40,80), t=randomInt(2,5); return { q: {kk:`v=${v}, t=${t}. S=?`, ru:`v=${v}, t=${t}. S=?`}, ans: v*t }; } },
-                { id: 'order', kk: 'Амалдар орындалуы', ru: 'Порядок действий', gen: () => { const a=randomInt(2,5), b=randomInt(10,20), c=randomInt(2,5); return { q: {kk:`${b} + ${a} · ${c}`, ru:`${b} + ${a} · ${c}`}, ans: b+(a*c) }; } },
-                { id: 'div_long', kk: 'Бөлу (жүздіктер)', ru: 'Деление (сотни)', gen: () => { const ans=randomInt(11,50), b=randomInt(2,9); return { q: {kk:`${ans*b} : ${b}`, ru:`${ans*b} : ${b}`}, ans: ans }; } }
+                { id: 'calc_big', kk: 'Көптаңбалы сандар', ru: 'Многозначные числа', gen: () => { const a=randomInt(100,500), b=randomInt(100,500); return { q: {kk:`${a} + ${b}`, ru:`${a} + ${b}`}, ans: a+b }; } },
+                { id: 'speed', kk: 'Қозғалыс (S=v·t)', ru: 'Движение (S=v·t)', gen: () => { const v=randomInt(40,90), t=randomInt(2,5); return { q: {kk:`v=${v}, t=${t}. S=?`, ru:`v=${v}, t=${t}. S=?`}, ans: v*t }; } },
+                { id: 'ops_order', kk: 'Амалдар реті', ru: 'Порядок действий', gen: () => { const a=randomInt(2,10), b=randomInt(2,5); return { q: {kk:`100 - ${a} · ${b}`, ru:`100 - ${a} · ${b}`}, ans: 100-(a*b) }; } }
             ],
-            // 5 КЛАСС: Десятичные дроби, степени, проценты, углы (арифметика)
+            // 5 КЛАСС: Дроби, НОД/НОК, Степени, Проценты
             5: [
-                { id: 'pow2', kk: 'Санның квадраты', ru: 'Квадрат числа', gen: () => { const a=randomInt(2,12); return { q: {kk:`${a}²`, ru:`${a}²`}, ans: a*a }; } },
-                { id: 'pow3', kk: 'Санның кубы', ru: 'Куб числа', gen: () => { const a=randomInt(2,6); return { q: {kk:`${a}³`, ru:`${a}³`}, ans: a*a*a }; } },
-                { id: 'perc', kk: 'Пайыз (%)', ru: 'Проценты (%)', gen: () => { const n=randomInt(1,20)*10; return { q: {kk:`${n}-дің 20%-ы?`, ru:`20% от ${n}?`}, ans: n*0.2 }; } },
-                { id: 'dec_add', kk: 'Ондық бөлшектер', ru: 'Десятичные дроби', gen: () => { const a=randomInt(1,10), b=randomInt(1,10); return { q: {kk:`${a/10} + ${b/10}`, ru:`${a/10} + ${b/10}`}, ans: (a+b)/10 }; } }
+                { id: 'pow2', kk: 'Санның квадраты', ru: 'Квадрат числа', gen: () => { const a=randomInt(2,15); return { q: {kk:`${a}²`, ru:`${a}²`}, ans: a*a }; } },
+                { id: 'gcd', kk: 'ЕҮОБ (НОД)', ru: 'НОД (ЕҮОБ)', gen: () => { const c=randomInt(2,10), a=c*randomInt(1,5), b=c*randomInt(6,10); return { q: {kk:`ЕҮОБ(${a}, ${b})`, ru:`НОД(${a}, ${b})`}, ans: getGCD(a,b) }; } },
+                { id: 'dec_add', kk: 'Ондық бөлшектер', ru: 'Десятичные дроби', gen: () => { const a=randomInt(1,50), b=randomInt(1,50); return { q: {kk:`${a/10} + ${b/10}`, ru:`${a/10} + ${b/10}`}, ans: (a+b)/10 }; } },
+                { id: 'perc', kk: 'Пайыз (%)', ru: 'Проценты (%)', gen: () => { const n=randomInt(1,20)*100; return { q: {kk:`${n}-ның 1%-ы`, ru:`1% от ${n}`}, ans: n*0.01 }; } }
             ],
-            // 6 КЛАСС: Рациональные числа (отрицательные), пропорции, модуль
+            // 6 КЛАСС: Рациональные числа (отрицательные), Модуль, Пропорции
             6: [
-                { id: 'neg_add', kk: 'Теріс сандарды қосу', ru: 'Слож. отриц. чисел', gen: () => { const a=randomInt(1,20), b=randomInt(1,20); return { q: {kk:`(-${a}) + (-${b})`, ru:`(-${a}) + (-${b})`}, ans: -(a+b) }; } },
-                { id: 'neg_mult', kk: 'Таңбалар ережесі', ru: 'Правило знаков (x)', gen: () => { const a=randomInt(2,10), b=randomInt(2,10); return { q: {kk:`(-${a}) · (-${b})`, ru:`(-${a}) · (-${b})`}, ans: a*b }; } },
-                { id: 'prop', kk: 'Пропорция', ru: 'Пропорция', gen: () => { const x=randomInt(2,10), k=randomInt(2,5); return { q: {kk:`x : ${k} = ${x*2} : ${k*2}`, ru:`x : ${k} = ${x*2} : ${k*2}`}, ans: x }; } },
-                { id: 'abs', kk: 'Модуль', ru: 'Модуль', gen: () => { const a=randomInt(-50,-10); return { q: {kk:`|${a}| - 10`, ru:`|${a}| - 10`}, ans: Math.abs(a)-10 }; } }
+                { id: 'neg_sum', kk: 'Теріс сандарды қосу', ru: 'Слож. отриц. чисел', gen: () => { const a=randomInt(1,20), b=randomInt(1,20); return { q: {kk:`(-${a}) + (-${b})`, ru:`(-${a}) + (-${b})`}, ans: -(a+b) }; } },
+                { id: 'abs_val', kk: 'Модуль', ru: 'Модуль', gen: () => { const a=randomInt(-50,-5); return { q: {kk:`|${a}| + 5`, ru:`|${a}| + 5`}, ans: Math.abs(a)+5 }; } },
+                { id: 'prop_x', kk: 'Пропорция', ru: 'Пропорция', gen: () => { const x=randomInt(2,10); return { q: {kk:`x : 5 = ${x*3} : 15`, ru:`x : 5 = ${x*3} : 15`}, ans: x }; } },
+                { id: 'int_mult', kk: 'Таңбалар ережесі', ru: 'Правило знаков', gen: () => { const a=randomInt(2,10), b=randomInt(2,10); return { q: {kk:`(-${a}) · ${b}`, ru:`(-${a}) · ${b}`}, ans: -a*b }; } }
             ],
-            // 7 КЛАСС: Алгебра (формулы сокращенного умножения, функции), степени
+            // 7 КЛАСС: Степени, ФСУ, Линейная функция
             7: [
-                { id: 'lin_eq', kk: 'Сызықтық теңдеу', ru: 'Линейное уравнение', gen: () => { const x=randomInt(-10,10), b=randomInt(1,20); return { q: {kk:`2x + ${b} = ${2*x+b}`, ru:`2x + ${b} = ${2*x+b}`}, ans: x }; } },
-                { id: 'pow_props', kk: 'Дәреже қасиеттері', ru: 'Свойства степеней', gen: () => { const n=randomInt(2,5); return { q: {kk:`2³ · 2^${n} = 2^x`, ru:`2³ · 2^${n} = 2^x`}, ans: 3+n }; } },
-                { id: 'func_val', kk: 'Функция мәні y=kx+b', ru: 'Значение функц. y=kx+b', gen: () => { const x=randomInt(1,5), k=randomInt(2,4), b=randomInt(1,10); return { q: {kk:`y=${k}x+${b}, x=${x}. y=?`, ru:`y=${k}x+${b}, x=${x}. y=?`}, ans: k*x+b }; } },
-                { id: 'fsu', kk: 'Қысқаша көбейту (a²-b²)', ru: 'ФСУ (a²-b²)', gen: () => { const a=randomInt(5,10); return { q: {kk:`${a}² - ${a-1}²`, ru:`${a}² - ${a-1}²`}, ans: (a*a) - ((a-1)*(a-1)) }; } }
+                { id: 'pow_prop', kk: 'Дәреже қасиеті', ru: 'Свойства степеней', gen: () => { const n=randomInt(2,5); return { q: {kk:`(2³)^${n} = 2^x`, ru:`(2³)^${n} = 2^x`}, ans: 3*n }; } },
+                { id: 'fsu_calc', kk: 'Қысқаша көбейту', ru: 'ФСУ (вычисление)', gen: () => { const a=randomInt(10,20); return { q: {kk:`${a}² - ${a-1}²`, ru:`${a}² - ${a-1}²`}, ans: a*a - (a-1)*(a-1) }; } }, // a^2 - b^2
+                { id: 'lin_func', kk: 'y=kx+b', ru: 'Функция y=kx+b', gen: () => { const k=randomInt(2,5), x=randomInt(1,5), b=randomInt(1,10); return { q: {kk:`y=${k}x+${b}, x=${x}. y=?`, ru:`y=${k}x+${b}, x=${x}. y=?`}, ans: k*x+b }; } }
             ],
-            // 8 КЛАСС: Квадратные корни, квадратные уравнения, теорема Пифагора
+            // 8 КЛАСС: Корни, Кв. уравнения (Дискриминант, Виет), Пифагор
             8: [
-                { id: 'sqrt', kk: 'Арифметикалық түбір', ru: 'Квадратный корень', gen: () => { const n=randomInt(2,20); return { q: {kk:`√${n*n}`, ru:`√${n*n}`}, ans: n }; } },
-                { id: 'quad_eq_simple', kk: 'x² = a', ru: 'Уравнение x² = a', gen: () => { const x=randomInt(2,15); return { q: {kk:`x² = ${x*x} (x>0)`, ru:`x² = ${x*x} (x>0)`}, ans: x }; } },
-                { id: 'pythag', kk: 'Пифагор теоремасы', ru: 'Теорема Пифагора', gen: () => { return { q: {kk:`a=3, b=4, c=?`, ru:`a=3, b=4, c=?`}, ans: 5 }; } }, // Статично для примера, можно расширить тройками
-                { id: 'discr', kk: 'Дискриминант D', ru: 'Дискриминант D', gen: () => { const b=randomInt(4,10), a=1, c=2; return { q: {kk:`x² + ${b}x + ${c} = 0. D=?`, ru:`x² + ${b}x + ${c} = 0. D=?`}, ans: b*b - 4*a*c }; } }
+                { id: 'sqrt_val', kk: 'Түбірлер', ru: 'Квадратный корень', gen: () => { const n=randomInt(2,20); return { q: {kk:`√${n*n}`, ru:`√${n*n}`}, ans: n }; } },
+                { id: 'discr', kk: 'Дискриминант', ru: 'Дискриминант', gen: () => { const b=randomInt(4,9), c=randomInt(1,3); return { q: {kk:`x² + ${b}x + ${c} = 0. D=?`, ru:`x² + ${b}x + ${c} = 0. D=?`}, ans: b*b - 4*c }; } },
+                { id: 'vieta', kk: 'Виет теоремасы', ru: 'Теорема Виета', gen: () => { const x1=randomInt(1,5), x2=randomInt(1,5); return { q: {kk:`x² - ${x1+x2}x + ${x1*x2} = 0. x₁+x₂=?`, ru:`x² - ${x1+x2}x + ${x1*x2} = 0. x₁+x₂=?`}, ans: x1+x2 }; } }
             ],
-            // 9 КЛАСС: Арифметическая/Геометрическая прогрессии, тригонометрия, векторы
+            // 9 КЛАСС: Прогрессии, Факториал, Тригонометрия
             9: [
-                { id: 'arith_prog', kk: 'Арифм. прогрессия', ru: 'Арифм. прогрессия', gen: () => { const a1=randomInt(1,10), d=randomInt(2,5); return { q: {kk:`a₁=${a1}, d=${d}. a₄=?`, ru:`a₁=${a1}, d=${d}. a₄=?`}, ans: a1 + 3*d }; } },
-                { id: 'geom_prog', kk: 'Геом. прогрессия', ru: 'Геом. прогрессия', gen: () => { const b1=randomInt(1,3), q=2; return { q: {kk:`b₁=${b1}, q=2. b₄=?`, ru:`b₁=${b1}, q=2. b₄=?`}, ans: b1 * 8 }; } },
-                { id: 'fact', kk: 'Факториал', ru: 'Факториал', gen: () => { const n=randomInt(3,5); const fact = (num) => num <= 1 ? 1 : num * fact(num - 1); return { q: {kk:`${n}!`, ru:`${n}!`}, ans: fact(n) }; } },
-                { id: 'trig', kk: 'Тригонометрия', ru: 'Тригонометрия', gen: () => { return { q: {kk:`2 · sin(30°)`, ru:`2 · sin(30°)`}, ans: 1 }; } } // sin30=0.5, ответ 1
+                { id: 'arith_prog', kk: 'Арифм. прогрессия', ru: 'Арифм. прогрессия', gen: () => { const a1=randomInt(1,10), d=randomInt(2,5); return { q: {kk:`a₁=${a1}, d=${d}. a₃=?`, ru:`a₁=${a1}, d=${d}. a₃=?`}, ans: a1+2*d }; } },
+                { id: 'fact', kk: 'Факториал', ru: 'Факториал', gen: () => { const n=randomInt(3,5); const f = n===3?6:n===4?24:120; return { q: {kk:`${n}!`, ru:`${n}!`}, ans: f }; } },
+                { id: 'trig', kk: 'Тригонометрия', ru: 'Тригонометрия', gen: () => { const deg = [30, 90, 180][randomInt(0,2)]; const ans = deg===30?1:deg===90?2:0; return { q: {kk:`2 · sin(${deg}°)`, ru:`2 · sin(${deg}°)`}, ans: deg===30?1:deg===90?2:0 }; } } // упрощенно
             ]
         };
-
         const App = () => {
             const [lang, setLang] = useState('kk');
             const [user, setUser] = useState(localStorage.getItem('bilim_user') || '');
@@ -253,4 +248,5 @@
     </script>
 </body>
 </html>
+
 
