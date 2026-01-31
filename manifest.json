@@ -1,16 +1,24 @@
 {
+  "name": "BilimMath Pro",
   "short_name": "BilimMath",
-  "name": "BilimMath — Математика для всех",
+  "description": "Математика для школьников Казахстана",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F7FF",
+  "theme_color": "#5D5FEF",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/5341/5341426.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5341/5341426.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ],
-  "start_url": "./index.html",
-  "background_color": "#F4F7FF",
-  "display": "standalone",
-  "scope": "./",
-  "theme_color": "#5D5FEF"
+  "categories": ["education", "productivity"],
+  "lang": "kk"
 }
